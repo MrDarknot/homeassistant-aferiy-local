@@ -1,0 +1,17 @@
+{
+  "domain": "aferiy_p280",
+  "name": "AFERIY P280",
+  "version": "0.1.0",
+  "config_flow": true,
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "dependencies": [
+    "bluetooth"
+  ],
+  "bluetooth": [
+    {
+      "local_name": "POWER-*",
+      "connectable": true
+    }
+  ]
+}
