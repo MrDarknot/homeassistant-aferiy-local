@@ -1,4 +1,4 @@
-# AFERIY Power Station for Home Assistant
+# AFERIY Local for Home Assistant
 
 Unofficial read only local Bluetooth integration for AFERIY power stations in Home Assistant.
 
