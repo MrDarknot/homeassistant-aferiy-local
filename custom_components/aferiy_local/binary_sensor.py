@@ -34,7 +34,7 @@ class AferiyBinarySensorDescription(
     data_key: str
 
 
-BINARY_SENSORS = (
+P280_BINARY_SENSORS = (
     AferiyBinarySensorDescription(
         key="ac_output",
         data_key="ac_active",
@@ -63,22 +63,56 @@ BINARY_SENSORS = (
 )
 
 
+P180_PRO_BINARY_SENSORS = (
+    AferiyBinarySensorDescription(
+        key="ac_output",
+        data_key="ac_active",
+        name="AC output",
+    ),
+    AferiyBinarySensorDescription(
+        key="dc_output",
+        data_key="dc_active",
+        name="DC output",
+    ),
+    AferiyBinarySensorDescription(
+        key="bluetooth_connected",
+        data_key="connected",
+        name="Bluetooth connected",
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = hass.data[
+    coordinator: AferiyLocalCoordinator = hass.data[
         DOMAIN
     ][entry.entry_id]
+
+    profile = coordinator.data.get(
+        "device_profile",
+        "p280",
+    )
+
+    if profile == "p180_pro":
+        binary_sensors = (
+            P180_PRO_BINARY_SENSORS
+        )
+    else:
+        binary_sensors = (
+            P280_BINARY_SENSORS
+        )
 
     async_add_entities(
         AferiyPowerStationBinarySensor(
             coordinator,
             entry,
             description,
+            profile,
         )
-        for description in BINARY_SENSORS
+        for description in binary_sensors
     )
 
 
@@ -93,6 +127,7 @@ class AferiyPowerStationBinarySensor(
         coordinator: AferiyLocalCoordinator,
         entry: ConfigEntry,
         description: AferiyBinarySensorDescription,
+        profile: str,
     ) -> None:
         super().__init__(
             coordinator
@@ -103,6 +138,7 @@ class AferiyPowerStationBinarySensor(
         address = entry.data[
             CONF_ADDRESS
         ]
+
         name = entry.data[
             CONF_NAME
         ]
@@ -110,6 +146,11 @@ class AferiyPowerStationBinarySensor(
         self._attr_unique_id = (
             f"{address}_{description.key}"
         )
+
+        if profile == "p180_pro":
+            model = "P180 Pro"
+        else:
+            model = "Power Station"
 
         self._attr_device_info = DeviceInfo(
             identifiers={
@@ -120,7 +161,7 @@ class AferiyPowerStationBinarySensor(
             },
             name=name,
             manufacturer="AFERIY",
-            model="Power Station",
+            model=model,
         )
 
     @property
