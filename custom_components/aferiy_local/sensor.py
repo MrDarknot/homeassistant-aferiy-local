@@ -11,6 +11,8 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfElectricPotential,
+    UnitOfFrequency,
     UnitOfPower,
     UnitOfTime,
 )
@@ -41,7 +43,7 @@ class AferiySensorDescription(
     data_key: str
 
 
-SENSORS = (
+P280_SENSORS = (
     AferiySensorDescription(
         key="battery",
         data_key="battery_percent",
@@ -99,22 +101,93 @@ SENSORS = (
 )
 
 
+P180_PRO_SENSORS = (
+    AferiySensorDescription(
+        key="battery",
+        data_key="battery_percent",
+        name="Battery",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AferiySensorDescription(
+        key="total_input_power",
+        data_key="total_input_power",
+        name="Total input power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AferiySensorDescription(
+        key="total_output_power",
+        data_key="total_output_power",
+        name="Total output power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AferiySensorDescription(
+        key="output_power",
+        data_key="output_power",
+        name="Output power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AferiySensorDescription(
+        key="ac_output_voltage",
+        data_key="ac_output_voltage",
+        name="AC output voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AferiySensorDescription(
+        key="ac_output_frequency",
+        data_key="ac_output_frequency",
+        name="AC output frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AferiySensorDescription(
+        key="battery_discharge_power",
+        data_key="battery_discharge_power",
+        name="Battery discharge power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = hass.data[
+    coordinator: AferiyLocalCoordinator = hass.data[
         DOMAIN
     ][entry.entry_id]
+
+    profile = coordinator.data.get(
+        "device_profile",
+        "p280",
+    )
+
+    if profile == "p180_pro":
+        sensors = P180_PRO_SENSORS
+    else:
+        sensors = P280_SENSORS
 
     async_add_entities(
         AferiyPowerStationSensor(
             coordinator,
             entry,
             description,
+            profile,
         )
-        for description in SENSORS
+        for description in sensors
     )
 
 
@@ -129,6 +202,7 @@ class AferiyPowerStationSensor(
         coordinator: AferiyLocalCoordinator,
         entry: ConfigEntry,
         description: AferiySensorDescription,
+        profile: str,
     ) -> None:
         super().__init__(
             coordinator
@@ -139,6 +213,7 @@ class AferiyPowerStationSensor(
         address = entry.data[
             CONF_ADDRESS
         ]
+
         name = entry.data[
             CONF_NAME
         ]
@@ -146,6 +221,11 @@ class AferiyPowerStationSensor(
         self._attr_unique_id = (
             f"{address}_{description.key}"
         )
+
+        if profile == "p180_pro":
+            model = "P180 Pro"
+        else:
+            model = "Power Station"
 
         self._attr_device_info = DeviceInfo(
             identifiers={
@@ -156,7 +236,7 @@ class AferiyPowerStationSensor(
             },
             name=name,
             manufacturer="AFERIY",
-            model="Power Station",
+            model=model,
         )
 
     @property
