@@ -104,17 +104,23 @@ def _get_all_registers(
     return registers
 
 
-def _parse_status(data: bytes) -> dict:
-    if len(data) < 168:
-        raise ValueError(
-            f"Status packet too short: {len(data)} bytes"
-        )
+def _looks_like_p180_pro(
+    registers: dict[int, int],
+) -> bool:
+    battery = registers.get(31, 0)
 
-    if data[0] != 0x11 or data[1] != 0x04:
-        raise ValueError(
-            "Unexpected status packet"
-        )
+    return (
+        0 <= battery <= 100
+        and registers.get(47) == 99
+        and registers.get(63) == 0x352C
+        and registers.get(60) == registers.get(61)
+        and registers.get(66) == registers.get(67)
+    )
 
+
+def _parse_p280_status(
+    data: bytes,
+) -> dict:
     state_flags = _get_register(
         data,
         41,
@@ -173,7 +179,215 @@ def _parse_status(data: bytes) -> dict:
         ),
 
         "connected": True,
+
+        "device_profile": "p280",
     }
+
+
+def _parse_p180_pro_status(
+    data: bytes,
+) -> dict:
+    registers = _get_all_registers(
+        data
+    )
+
+    battery_percent = registers.get(
+        31,
+        0,
+    )
+
+    ac_input_power = registers.get(
+        2,
+        0,
+    )
+
+    power_channel_1 = registers.get(
+        3,
+        0,
+    )
+
+    power_channel_2 = registers.get(
+        12,
+        0,
+    )
+
+    power_channel_3 = registers.get(
+        13,
+        0,
+    )
+
+    ac_output_voltage = (
+        registers.get(10, 0) / 10.0
+    )
+
+    ac_output_frequency = (
+        registers.get(11, 0) / 10.0
+    )
+
+    state_register = registers.get(
+        75,
+        0,
+    )
+
+    dc_state_register = registers.get(
+        78,
+        0,
+    )
+
+    ac_active = bool(
+        state_register & 0x10
+    )
+
+    dc_active = bool(
+        dc_state_register
+    )
+
+    total_input_power = 0
+
+    if ac_input_power > 0:
+        total_input_power = (
+            ac_input_power
+        )
+
+    elif (
+        power_channel_1 > 0
+        and not ac_active
+    ):
+        total_input_power = (
+            power_channel_1
+        )
+
+    output_power = 0
+
+    if ac_active:
+        if power_channel_2 > 0:
+            output_power = (
+                power_channel_2
+            )
+
+        elif power_channel_3 > 0:
+            output_power = (
+                power_channel_3
+            )
+
+        elif power_channel_1 > 0:
+            output_power = (
+                power_channel_1
+            )
+
+    return {
+        "battery_percent": float(
+            battery_percent
+        ),
+
+        "total_input_power": (
+            total_input_power
+        ),
+
+        "total_output_power": (
+            output_power
+        ),
+
+        "output_power": (
+            output_power
+        ),
+
+        "system_power": 0,
+
+        "remaining_minutes": 0,
+
+        "time_to_full": 0,
+
+        "usb_active": False,
+
+        "dc_active": (
+            dc_active
+        ),
+
+        "ac_active": (
+            ac_active
+        ),
+
+        "light_active": False,
+
+        "connected": True,
+
+        "device_profile": (
+            "p180_pro"
+        ),
+
+        "ac_output_voltage": (
+            ac_output_voltage
+        ),
+
+        "ac_output_frequency": (
+            ac_output_frequency
+        ),
+
+        "battery_discharge_power": (
+            power_channel_3
+        ),
+
+        "power_channel_1": (
+            power_channel_1
+        ),
+
+        "power_channel_2": (
+            power_channel_2
+        ),
+
+        "power_channel_3": (
+            power_channel_3
+        ),
+
+        "p180_state_register": (
+            state_register
+        ),
+
+        "p180_dc_state_register": (
+            dc_state_register
+        ),
+    }
+
+
+def _parse_status(
+    data: bytes,
+) -> dict:
+    if len(data) < 168:
+        raise ValueError(
+            f"Status packet too short: {len(data)} bytes"
+        )
+
+    if (
+        data[0] != 0x11
+        or data[1] != 0x04
+    ):
+        raise ValueError(
+            "Unexpected status packet"
+        )
+
+    registers = _get_all_registers(
+        data
+    )
+
+    if _looks_like_p180_pro(
+        registers
+    ):
+        _LOGGER.debug(
+            "Using P180 Pro register profile"
+        )
+
+        return _parse_p180_pro_status(
+            data
+        )
+
+    _LOGGER.debug(
+        "Using standard P280 register profile"
+    )
+
+    return _parse_p280_status(
+        data
+    )
 
 
 class AferiyLocalCoordinator(
@@ -201,6 +415,7 @@ class AferiyLocalCoordinator(
         self.last_registers: dict[int, int] = {}
         self.last_device_name: str | None = None
         self.last_packet_length: int = 0
+        self.last_profile_candidate: str = "unknown"
 
     async def _find_device(self):
         device = bluetooth.async_ble_device_from_address(
@@ -295,15 +510,30 @@ class AferiyLocalCoordinator(
                     "No status packet received"
                 )
 
-            self.last_raw_packet = received_data
+            self.last_raw_packet = (
+                received_data
+            )
+
             self.last_packet_length = len(
                 received_data
             )
+
             self.last_registers = (
                 _get_all_registers(
                     received_data
                 )
             )
+
+            if _looks_like_p180_pro(
+                self.last_registers
+            ):
+                self.last_profile_candidate = (
+                    "p180_pro"
+                )
+            else:
+                self.last_profile_candidate = (
+                    "standard"
+                )
 
             _LOGGER.debug(
                 "Raw AFERIY packet from %s: %s",
@@ -322,9 +552,66 @@ class AferiyLocalCoordinator(
                 ),
             )
 
-            return _parse_status(
+            _LOGGER.debug(
+                "AFERIY detected profile candidate for %s: %s",
+                self.last_device_name,
+                self.last_profile_candidate,
+            )
+
+            parsed = _parse_status(
                 received_data
             )
+
+            _LOGGER.debug(
+                "AFERIY active profile for %s: %s",
+                self.last_device_name,
+                parsed.get(
+                    "device_profile",
+                    "unknown",
+                ),
+            )
+
+            if (
+                parsed.get(
+                    "device_profile"
+                )
+                == "p180_pro"
+            ):
+                _LOGGER.debug(
+                    "P180 Pro parsed values: "
+                    "battery=%s%%, "
+                    "input=%sW, "
+                    "output=%sW, "
+                    "AC=%s, "
+                    "DC=%s, "
+                    "channels=%s/%s/%s",
+                    parsed.get(
+                        "battery_percent"
+                    ),
+                    parsed.get(
+                        "total_input_power"
+                    ),
+                    parsed.get(
+                        "output_power"
+                    ),
+                    parsed.get(
+                        "ac_active"
+                    ),
+                    parsed.get(
+                        "dc_active"
+                    ),
+                    parsed.get(
+                        "power_channel_1"
+                    ),
+                    parsed.get(
+                        "power_channel_2"
+                    ),
+                    parsed.get(
+                        "power_channel_3"
+                    ),
+                )
+
+            return parsed
 
         except asyncio.TimeoutError as err:
             raise UpdateFailed(
@@ -355,6 +642,7 @@ class AferiyLocalCoordinator(
                         await client.stop_notify(
                             NOTIFY_UUID
                         )
+
                         await client.disconnect()
 
                 except Exception:
