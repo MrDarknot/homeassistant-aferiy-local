@@ -111,7 +111,8 @@ def _looks_like_p180_pro(
 
     return (
         0 <= battery <= 100
-        and registers.get(47) == 99
+        and registers.get(36) == 0x3000
+        and registers.get(38) == 0x3000
         and registers.get(63) == 0x352C
         and registers.get(60) == registers.get(61)
         and registers.get(66) == registers.get(67)
@@ -352,6 +353,7 @@ def _parse_p180_pro_status(
 
 def _parse_status(
     data: bytes,
+    profile: str,
 ) -> dict:
     if len(data) < 168:
         raise ValueError(
@@ -366,24 +368,10 @@ def _parse_status(
             "Unexpected status packet"
         )
 
-    registers = _get_all_registers(
-        data
-    )
-
-    if _looks_like_p180_pro(
-        registers
-    ):
-        _LOGGER.debug(
-            "Using P180 Pro register profile"
-        )
-
+    if profile == "p180_pro":
         return _parse_p180_pro_status(
             data
         )
-
-    _LOGGER.debug(
-        "Using standard P280 register profile"
-    )
 
     return _parse_p280_status(
         data
@@ -416,6 +404,8 @@ class AferiyLocalCoordinator(
         self.last_device_name: str | None = None
         self.last_packet_length: int = 0
         self.last_profile_candidate: str = "unknown"
+
+        self._p180_profile_locked = False
 
     async def _find_device(self):
         device = bluetooth.async_ble_device_from_address(
@@ -530,9 +520,21 @@ class AferiyLocalCoordinator(
                 self.last_profile_candidate = (
                     "p180_pro"
                 )
+
+                self._p180_profile_locked = True
+
             else:
                 self.last_profile_candidate = (
                     "standard"
+                )
+
+            if self._p180_profile_locked:
+                active_profile = (
+                    "p180_pro"
+                )
+            else:
+                active_profile = (
+                    "p280"
                 )
 
             _LOGGER.debug(
@@ -558,25 +560,18 @@ class AferiyLocalCoordinator(
                 self.last_profile_candidate,
             )
 
-            parsed = _parse_status(
-                received_data
-            )
-
             _LOGGER.debug(
                 "AFERIY active profile for %s: %s",
                 self.last_device_name,
-                parsed.get(
-                    "device_profile",
-                    "unknown",
-                ),
+                active_profile,
             )
 
-            if (
-                parsed.get(
-                    "device_profile"
-                )
-                == "p180_pro"
-            ):
+            parsed = _parse_status(
+                received_data,
+                active_profile,
+            )
+
+            if active_profile == "p180_pro":
                 _LOGGER.debug(
                     "P180 Pro parsed values: "
                     "battery=%s%%, "
