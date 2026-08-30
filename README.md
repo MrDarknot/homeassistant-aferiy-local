@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/MrDarknot/homeassistant-aferiy-local/main/images/aferiy-banner.png" alt="AFERIY Local for Home Assistant">
-</p>
+![AFERIY Local for Home Assistant](images/aferiy-banner.png)
 
 <h1 align="center">AFERIY Local for Home Assistant</h1>
 
