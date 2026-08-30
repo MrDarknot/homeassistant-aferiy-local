@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/MrDarknot/homeassistant-aferiy-local/main/images/aferiy-banner.png" alt="AFERIY Local for Home Assistant">
+  <img src="https://raw.githubusercontent.com/MrDarknot/homeassistant-aferiy-local/main/images/aferiy-banner" alt="AFERIY Local for Home Assistant">
 </p>
 
 <h1 align="center">AFERIY Local for Home Assistant</h1>
@@ -16,6 +16,7 @@
 ![License](https://img.shields.io/github/license/MrDarknot/homeassistant-aferiy-local)
 ![Read Only](https://img.shields.io/badge/Mode-Read%20Only-orange)
 ![Bluetooth](https://img.shields.io/badge/Connection-Local%20Bluetooth-blue)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20me-FFDD00?logo=buymeacoffee&logoColor=000000)](https://buymeacoffee.com/mrdarknot)
 
 </p>
 
