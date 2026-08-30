@@ -52,6 +52,16 @@ P280_SENSORS = (
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
+    AferiySensorDescription(
+        key="battery_charge_power",
+        data_key="battery_charge_power",
+        name="Battery charge power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
     AferiySensorDescription(
         key="total_input_power",
         data_key="total_input_power",
@@ -60,6 +70,97 @@ P280_SENSORS = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
+    AferiySensorDescription(
+        key="ac_input_voltage",
+        data_key="ac_input_voltage",
+        name="AC input voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_input_frequency",
+        data_key="ac_input_frequency",
+        name="AC input frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_output_voltage",
+        data_key="ac_output_voltage",
+        name="AC output voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_frequency_setting",
+        data_key="ac_frequency_setting",
+        name="AC frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_output_power",
+        data_key="ac_output_power",
+        name="AC output power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="dc_output_power",
+        data_key="dc_output_power",
+        name="DC output power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="usb_c_pd140_right_power",
+        data_key="usb_c_pd140_right_power",
+        name="USB-C PD140 right power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="usb_c_pd140_left_power",
+        data_key="usb_c_pd140_left_power",
+        name="USB-C PD140 left power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="usb_c_pd20_left_power",
+        data_key="usb_c_pd20_left_power",
+        name="USB-C PD20 left power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="usb_c_pd20_right_power",
+        data_key="usb_c_pd20_right_power",
+        name="USB-C PD20 right power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
     AferiySensorDescription(
         key="total_output_power",
         data_key="total_output_power",
@@ -68,22 +169,7 @@ P280_SENSORS = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    AferiySensorDescription(
-        key="output_power",
-        data_key="output_power",
-        name="Output power",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    AferiySensorDescription(
-        key="system_power",
-        data_key="system_power",
-        name="System power",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
+
     AferiySensorDescription(
         key="remaining_time",
         data_key="remaining_minutes",
@@ -91,6 +177,7 @@ P280_SENSORS = (
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
     ),
+
     AferiySensorDescription(
         key="time_to_full",
         data_key="time_to_full",
@@ -110,6 +197,7 @@ P180_PRO_SENSORS = (
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
     AferiySensorDescription(
         key="total_input_power",
         data_key="total_input_power",
@@ -118,6 +206,7 @@ P180_PRO_SENSORS = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
     AferiySensorDescription(
         key="total_output_power",
         data_key="total_output_power",
@@ -126,6 +215,7 @@ P180_PRO_SENSORS = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
     AferiySensorDescription(
         key="output_power",
         data_key="output_power",
@@ -134,6 +224,7 @@ P180_PRO_SENSORS = (
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
     AferiySensorDescription(
         key="ac_output_voltage",
         data_key="ac_output_voltage",
@@ -142,6 +233,7 @@ P180_PRO_SENSORS = (
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
     AferiySensorDescription(
         key="ac_output_frequency",
         data_key="ac_output_frequency",
@@ -150,6 +242,7 @@ P180_PRO_SENSORS = (
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
     AferiySensorDescription(
         key="battery_discharge_power",
         data_key="battery_discharge_power",
@@ -225,7 +318,7 @@ class AferiyPowerStationSensor(
         if profile == "p180_pro":
             model = "P180 Pro"
         else:
-            model = "Power Station"
+            model = "P280"
 
         self._attr_device_info = DeviceInfo(
             identifiers={
