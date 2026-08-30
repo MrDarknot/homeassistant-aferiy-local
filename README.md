@@ -1,6 +1,4 @@
-<p align="center">
-  ![AFERIY Local for Home Assistant](https://github.com/MrDarknot/homeassistant-aferiy-local/raw/main/custom_components/aferiy_local/images/aferiy-banner.png)
-</p>
+![AFERIY Local for Home Assistant](https://github.com/MrDarknot/homeassistant-aferiy-local/raw/main/custom_components/aferiy_local/images/aferiy-banner.png)
 
 <h1 align="center">AFERIY Local for Home Assistant</h1>
 
