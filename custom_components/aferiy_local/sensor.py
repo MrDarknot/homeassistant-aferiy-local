@@ -199,11 +199,67 @@ P180_PRO_SENSORS = (
     ),
 
     AferiySensorDescription(
+        key="ac_input_power",
+        data_key="ac_input_power",
+        name="AC input power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="solar_dc_input_power",
+        data_key="solar_dc_input_power",
+        name="Solar / DC input power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
         key="total_input_power",
         data_key="total_input_power",
         name="Total input power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_input_voltage",
+        data_key="ac_input_voltage",
+        name="AC input voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_input_frequency",
+        data_key="ac_input_frequency",
+        name="AC input frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="ac_output_voltage",
+        data_key="ac_output_voltage",
+        name="AC output voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    # Keep the original entity key so existing P180 Pro
+    # installations do not get an unnecessary duplicate entity.
+    AferiySensorDescription(
+        key="ac_output_frequency",
+        data_key="ac_frequency_setting",
+        name="AC frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 
@@ -226,30 +282,20 @@ P180_PRO_SENSORS = (
     ),
 
     AferiySensorDescription(
-        key="ac_output_voltage",
-        data_key="ac_output_voltage",
-        name="AC output voltage",
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        device_class=SensorDeviceClass.VOLTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-
-    AferiySensorDescription(
-        key="ac_output_frequency",
-        data_key="ac_output_frequency",
-        name="AC output frequency",
-        native_unit_of_measurement=UnitOfFrequency.HERTZ,
-        device_class=SensorDeviceClass.FREQUENCY,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-
-    AferiySensorDescription(
         key="battery_discharge_power",
         data_key="battery_discharge_power",
         name="Battery discharge power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="time_to_full",
+        data_key="time_to_full",
+        name="Time to full",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
     ),
 )
 
