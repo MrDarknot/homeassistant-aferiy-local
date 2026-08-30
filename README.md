@@ -91,20 +91,44 @@ The individual USB A ports do not currently appear to expose separate power meas
 
 Experimental support is included for the AFERIY P180 Pro.
 
-Currently available information includes:
+Current sensor support includes:
+
+### Battery
 
 * Battery percentage
-* Total input power
-* Total output power
-* AC output voltage
-* AC output frequency
 * Battery discharge power
+* Time to full
+
+### Input
+
+* AC input power
+* Solar / DC input power
+* Total input power
+* AC input voltage
+* AC input frequency
+
+### AC output
+
+* AC output voltage
+* AC frequency
+* Total output power
+* Output power
 * AC output status
+
+### DC output
+
 * DC output status
+
+### Other
+
 * Bluetooth connection status
 * Home Assistant diagnostics support
 
-P180 Pro support is still experimental and some sensor mappings may change as additional testing is completed.
+P180 Pro support is still experimental.
+
+Input power, battery percentage and Time to full have been validated against values shown directly on the P180 Pro display.
+
+Some output sensor mappings may change as additional testing is completed.
 
 ## Requirements
 
@@ -210,6 +234,8 @@ Created by **MrDarknot**.
 BrightEMS protocol research based in part on ESP FBot by Ylianst.
 
 Thanks to community members helping test additional AFERIY hardware.
+
+Special thanks to **Jay Danger - Safety Weng** for helping test and validate AFERIY P180 Pro support.
 
 ## Disclaimer
 
