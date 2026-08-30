@@ -28,10 +28,10 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-STATE_USB_BIT = 512
-STATE_DC_BIT = 1024
-STATE_AC_BIT = 2048
-STATE_LIGHT_BIT = 4096
+STATE_USB_BIT = 0x0200
+STATE_DC_BIT = 0x0400
+STATE_AC_BIT = 0x0800
+STATE_LIGHT_BIT = 0x1000
 
 
 def _crc16_modbus(data: bytes) -> int:
@@ -128,39 +128,68 @@ def _parse_p280_status(
     )
 
     return {
-        "battery_percent": _get_register(
-            data,
-            56,
-        ) / 10.0,
-
-        "total_input_power": _get_register(
-            data,
-            6,
+        "battery_percent": (
+            _get_register(data, 56) / 10.0
         ),
 
-        "total_output_power": _get_register(
-            data,
-            20,
+        "battery_charge_power": (
+            _get_register(data, 3)
         ),
 
-        "output_power": _get_register(
-            data,
-            39,
+        "total_input_power": (
+            _get_register(data, 6)
         ),
 
-        "system_power": _get_register(
-            data,
-            21,
+        "dc_output_power": (
+            _get_register(data, 10) / 10.0
         ),
 
-        "remaining_minutes": _get_register(
-            data,
-            59,
+        "ac_output_voltage": (
+            _get_register(data, 18) / 10.0
         ),
 
-        "time_to_full": _get_register(
-            data,
-            58,
+        "ac_frequency_setting": (
+            _get_register(data, 19) / 10.0
+        ),
+
+        "ac_output_power": (
+            _get_register(data, 20)
+        ),
+
+        "ac_input_voltage": (
+            _get_register(data, 21) / 10.0
+        ),
+
+        "ac_input_frequency": (
+            _get_register(data, 22) / 100.0
+        ),
+
+        "usb_c_pd140_right_power": (
+            _get_register(data, 34) / 10.0
+        ),
+
+        "usb_c_pd140_left_power": (
+            _get_register(data, 35) / 10.0
+        ),
+
+        "usb_c_pd20_left_power": (
+            _get_register(data, 36) / 10.0
+        ),
+
+        "usb_c_pd20_right_power": (
+            _get_register(data, 37) / 10.0
+        ),
+
+        "total_output_power": (
+            _get_register(data, 39)
+        ),
+
+        "remaining_minutes": (
+            _get_register(data, 59)
+        ),
+
+        "time_to_full": (
+            _get_register(data, 58)
         ),
 
         "usb_active": bool(
@@ -407,6 +436,7 @@ class AferiyLocalCoordinator(
 
         self._p180_profile_locked = False
 
+
     async def _find_device(self):
         device = bluetooth.async_ble_device_from_address(
             self.hass,
@@ -437,6 +467,7 @@ class AferiyLocalCoordinator(
             f"AFERIY power station not reachable: {self.address}"
         )
 
+
     async def _async_update_data(
         self,
     ) -> dict:
@@ -448,6 +479,7 @@ class AferiyLocalCoordinator(
 
         response_event = asyncio.Event()
         received_data: bytes | None = None
+
 
         def notification_handler(
             _sender,
@@ -464,6 +496,7 @@ class AferiyLocalCoordinator(
             ):
                 received_data = raw
                 response_event.set()
+
 
         client = None
 
