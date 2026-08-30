@@ -1,4 +1,4 @@
-![AFERIY Local for Home Assistant](images/aferiy-banner.png)
+![AFERIY Local for Home Assistant](custom_components/aferiy_local/images/aferiy-banner.png)
 
 <h1 align="center">AFERIY Local for Home Assistant</h1>
 
