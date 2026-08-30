@@ -246,12 +246,29 @@ def _parse_p180_pro_status(
         0,
     )
 
+    ac_input_voltage = (
+        registers.get(8, 0) / 10.0
+    )
+
+    ac_input_frequency = (
+        registers.get(9, 0) / 100.0
+    )
+
     ac_output_voltage = (
         registers.get(10, 0) / 10.0
     )
 
-    ac_output_frequency = (
+    ac_frequency_setting = (
         registers.get(11, 0) / 10.0
+    )
+
+    battery_voltage_candidate = (
+        registers.get(32, 0) / 100.0
+    )
+
+    time_to_full = registers.get(
+        71,
+        0,
     )
 
     state_register = registers.get(
@@ -272,6 +289,26 @@ def _parse_p180_pro_status(
         dc_state_register
     )
 
+    # R03 has been confirmed as Solar / DC input power
+    # while charging from solar with AC output disabled.
+    #
+    # Earlier testing also showed R03 can carry another
+    # power value while AC output is active.
+    #
+    # To avoid reporting AC output power as solar input,
+    # expose R03 as Solar / DC input only when AC output
+    # is not active and AC input is zero.
+
+    solar_dc_input_power = 0
+
+    if (
+        ac_input_power == 0
+        and not ac_active
+    ):
+        solar_dc_input_power = (
+            power_channel_1
+        )
+
     total_input_power = 0
 
     if ac_input_power > 0:
@@ -279,13 +316,16 @@ def _parse_p180_pro_status(
             ac_input_power
         )
 
-    elif (
-        power_channel_1 > 0
-        and not ac_active
-    ):
+    elif solar_dc_input_power > 0:
         total_input_power = (
-            power_channel_1
+            solar_dc_input_power
         )
+
+    # P180 Pro output mapping is still experimental.
+    #
+    # Keep the previously tested behaviour until we have
+    # enough controlled output tests to map every channel
+    # with certainty.
 
     output_power = 0
 
@@ -310,8 +350,38 @@ def _parse_p180_pro_status(
             battery_percent
         ),
 
+        "ac_input_power": (
+            ac_input_power
+        ),
+
+        "solar_dc_input_power": (
+            solar_dc_input_power
+        ),
+
         "total_input_power": (
             total_input_power
+        ),
+
+        "ac_input_voltage": (
+            ac_input_voltage
+        ),
+
+        "ac_input_frequency": (
+            ac_input_frequency
+        ),
+
+        "ac_output_voltage": (
+            ac_output_voltage
+        ),
+
+        # Keep the old key for compatibility with
+        # the current sensor.py until we update it.
+        "ac_output_frequency": (
+            ac_frequency_setting
+        ),
+
+        "ac_frequency_setting": (
+            ac_frequency_setting
         ),
 
         "total_output_power": (
@@ -322,11 +392,15 @@ def _parse_p180_pro_status(
             output_power
         ),
 
-        "system_power": 0,
+        "battery_discharge_power": (
+            power_channel_3
+        ),
 
         "remaining_minutes": 0,
 
-        "time_to_full": 0,
+        "time_to_full": (
+            time_to_full
+        ),
 
         "usb_active": False,
 
@@ -346,16 +420,10 @@ def _parse_p180_pro_status(
             "p180_pro"
         ),
 
-        "ac_output_voltage": (
-            ac_output_voltage
-        ),
-
-        "ac_output_frequency": (
-            ac_output_frequency
-        ),
-
-        "battery_discharge_power": (
-            power_channel_3
+        # Debug only for now.
+        # Do not expose as normal sensor yet.
+        "battery_voltage_candidate": (
+            battery_voltage_candidate
         ),
 
         "power_channel_1": (
@@ -608,16 +676,27 @@ class AferiyLocalCoordinator(
                 _LOGGER.debug(
                     "P180 Pro parsed values: "
                     "battery=%s%%, "
-                    "input=%sW, "
+                    "AC input=%sW, "
+                    "solar/DC input=%sW, "
+                    "total input=%sW, "
+                    "time to full=%smin, "
                     "output=%sW, "
                     "AC=%s, "
-                    "DC=%s, "
-                    "channels=%s/%s/%s",
+                    "DC=%s",
                     parsed.get(
                         "battery_percent"
                     ),
                     parsed.get(
+                        "ac_input_power"
+                    ),
+                    parsed.get(
+                        "solar_dc_input_power"
+                    ),
+                    parsed.get(
                         "total_input_power"
+                    ),
+                    parsed.get(
+                        "time_to_full"
                     ),
                     parsed.get(
                         "output_power"
@@ -627,15 +706,6 @@ class AferiyLocalCoordinator(
                     ),
                     parsed.get(
                         "dc_active"
-                    ),
-                    parsed.get(
-                        "power_channel_1"
-                    ),
-                    parsed.get(
-                        "power_channel_2"
-                    ),
-                    parsed.get(
-                        "power_channel_3"
                     ),
                 )
 
