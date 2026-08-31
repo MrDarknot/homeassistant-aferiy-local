@@ -246,7 +246,7 @@ def _parse_p180_pro_status(
         0,
     )
 
-    ac_input_voltage = (
+    raw_ac_input_voltage = (
         registers.get(8, 0) / 10.0
     )
 
@@ -266,11 +266,6 @@ def _parse_p180_pro_status(
         registers.get(32, 0) / 100.0
     )
 
-    time_to_full = registers.get(
-        71,
-        0,
-    )
-
     state_register = registers.get(
         75,
         0,
@@ -278,6 +273,11 @@ def _parse_p180_pro_status(
 
     dc_state_register = registers.get(
         78,
+        0,
+    )
+
+    source_register = registers.get(
+        53,
         0,
     )
 
@@ -289,43 +289,109 @@ def _parse_p180_pro_status(
         dc_state_register
     )
 
-    # R03 has been confirmed as Solar / DC input power
-    # while charging from solar with AC output disabled.
     #
-    # Earlier testing also showed R03 can carry another
-    # power value while AC output is active.
+    # AC INPUT
     #
-    # To avoid reporting AC output power as solar input,
-    # expose R03 as Solar / DC input only when AC output
-    # is not active and AC input is zero.
-
-    solar_dc_input_power = 0
+    # R02 = AC input power.
+    #
+    # R08 occasionally reports a few volts of noise
+    # when no AC source is connected.
+    #
+    # If both AC power and AC frequency are zero,
+    # report AC input voltage as zero as well.
+    #
 
     if (
         ac_input_power == 0
-        and not ac_active
+        and ac_input_frequency == 0
     ):
+        ac_input_voltage = 0.0
+    else:
+        ac_input_voltage = (
+            raw_ac_input_voltage
+        )
+
+    #
+    # SOLAR / DC INPUT
+    #
+    # Controlled tests:
+    #
+    # Solar charging:
+    # R03 = displayed solar input
+    # R53 = 0x0300
+    #
+    # Solar input while AC output is active:
+    # R03 = displayed solar input
+    # R53 = 0x0310
+    #
+    # AC charging:
+    # R53 = 0x0068
+    #
+    # The upper source bits in R53 are therefore used
+    # as an additional guard before exposing R03 as
+    # Solar / DC input power.
+    #
+
+    solar_dc_source_active = (
+        source_register & 0x0300
+    ) == 0x0300
+
+    if solar_dc_source_active:
         solar_dc_input_power = (
             power_channel_1
         )
+    else:
+        solar_dc_input_power = 0
 
-    total_input_power = 0
+    #
+    # TOTAL INPUT
+    #
+    # AC and Solar / DC have been validated separately.
+    # Simultaneous AC + Solar charging has not yet been
+    # validated, so preserve source priority for now.
+    #
 
     if ac_input_power > 0:
         total_input_power = (
             ac_input_power
         )
-
-    elif solar_dc_input_power > 0:
+    else:
         total_input_power = (
             solar_dc_input_power
         )
 
-    # P180 Pro output mapping is still experimental.
     #
-    # Keep the previously tested behaviour until we have
-    # enough controlled output tests to map every channel
-    # with certainty.
+    # TIME
+    #
+    # R71 = Time to Full
+    #
+    # Confirmed against the P180 Pro display at several
+    # different charge rates and SOC levels.
+    #
+    # R72 = Remaining Time
+    #
+    # Confirmed during net battery discharge:
+    # R72 = 179 minutes while the display showed
+    # approximately 3 hours remaining.
+    #
+
+    time_to_full = registers.get(
+        71,
+        0,
+    )
+
+    remaining_minutes = registers.get(
+        72,
+        0,
+    )
+
+    #
+    # OUTPUT
+    #
+    # P180 Pro output mapping remains experimental.
+    # Keep the previously tested behaviour until more
+    # controlled output tests are available.
+    #
 
     output_power = 0
 
@@ -374,8 +440,6 @@ def _parse_p180_pro_status(
             ac_output_voltage
         ),
 
-        # Keep the old key for compatibility with
-        # the current sensor.py until we update it.
         "ac_output_frequency": (
             ac_frequency_setting
         ),
@@ -396,7 +460,9 @@ def _parse_p180_pro_status(
             power_channel_3
         ),
 
-        "remaining_minutes": 0,
+        "remaining_minutes": (
+            remaining_minutes
+        ),
 
         "time_to_full": (
             time_to_full
@@ -420,8 +486,10 @@ def _parse_p180_pro_status(
             "p180_pro"
         ),
 
-        # Debug only for now.
-        # Do not expose as normal sensor yet.
+        #
+        # DEBUG / RESEARCH VALUES
+        #
+
         "battery_voltage_candidate": (
             battery_voltage_candidate
         ),
@@ -444,6 +512,10 @@ def _parse_p180_pro_status(
 
         "p180_dc_state_register": (
             dc_state_register
+        ),
+
+        "p180_source_register": (
+            source_register
         ),
     }
 
@@ -680,6 +752,7 @@ class AferiyLocalCoordinator(
                     "solar/DC input=%sW, "
                     "total input=%sW, "
                     "time to full=%smin, "
+                    "remaining=%smin, "
                     "output=%sW, "
                     "AC=%s, "
                     "DC=%s",
@@ -697,6 +770,9 @@ class AferiyLocalCoordinator(
                     ),
                     parsed.get(
                         "time_to_full"
+                    ),
+                    parsed.get(
+                        "remaining_minutes"
                     ),
                     parsed.get(
                         "output_power"
