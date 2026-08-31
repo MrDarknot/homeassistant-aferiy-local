@@ -97,6 +97,7 @@ Current sensor support includes:
 
 * Battery percentage
 * Battery discharge power
+* Remaining time
 * Time to full
 
 ### Input
@@ -126,7 +127,7 @@ Current sensor support includes:
 
 P180 Pro support is still experimental.
 
-Input power, battery percentage and Time to full have been validated against values shown directly on the P180 Pro display.
+Battery percentage, AC input power, Solar / DC input power, Time to full and Remaining time have been validated against values shown directly on the P180 Pro display.
 
 Some output sensor mappings may change as additional testing is completed.
 
@@ -235,7 +236,7 @@ BrightEMS protocol research based in part on ESP FBot by Ylianst.
 
 Thanks to community members helping test additional AFERIY hardware.
 
-Special thanks to **Jay Danger - Safety Weng** for helping test and validate AFERIY P180 Pro support.
+Special thanks to **FreeZerHam** for helping test and validate AFERIY P180 Pro support.
 
 ## Disclaimer
 
