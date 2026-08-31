@@ -252,8 +252,6 @@ P180_PRO_SENSORS = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
 
-    # Keep the original entity key so existing P180 Pro
-    # installations do not get an unnecessary duplicate entity.
     AferiySensorDescription(
         key="ac_output_frequency",
         data_key="ac_frequency_setting",
@@ -288,6 +286,14 @@ P180_PRO_SENSORS = (
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="remaining_time",
+        data_key="remaining_minutes",
+        name="Remaining time",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
     ),
 
     AferiySensorDescription(
