@@ -118,6 +118,7 @@ Current sensor support includes:
 
 ### DC output
 
+* DC output power
 * DC output status
 
 ### Other
@@ -127,7 +128,7 @@ Current sensor support includes:
 
 P180 Pro support is still experimental.
 
-Battery percentage, AC input power, Solar / DC input power, Time to full and Remaining time have been validated against values shown directly on the P180 Pro display.
+Battery percentage, AC input power, Solar / DC input power, DC output power, Time to full and Remaining time have been validated against values shown directly on the P180 Pro display and controlled hardware testing.
 
 Some output sensor mappings may change as additional testing is completed.
 
