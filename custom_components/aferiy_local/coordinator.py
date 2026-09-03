@@ -33,6 +33,9 @@ STATE_DC_BIT = 0x0400
 STATE_AC_BIT = 0x0800
 STATE_LIGHT_BIT = 0x1000
 
+P180_STATE_DC_BIT = 0x0008
+P180_STATE_AC_BIT = 0x0010
+
 
 def _crc16_modbus(data: bytes) -> int:
     crc = 0xFFFF
@@ -271,7 +274,7 @@ def _parse_p180_pro_status(
         0,
     )
 
-    dc_state_register = registers.get(
+    dc_output_power = registers.get(
         78,
         0,
     )
@@ -281,13 +284,39 @@ def _parse_p180_pro_status(
         0,
     )
 
-    ac_active = bool(
-        state_register & 0x10
-    )
+    #
+    # OUTPUT STATUS
+    #
+    # Controlled P180 Pro testing confirmed:
+    #
+    # R75 bit 0x08 = DC output enabled
+    # R75 bit 0x10 = AC output enabled
+    #
+    # Example:
+    #
+    # 0x0000 = DC OFF, AC OFF
+    # 0x0008 = DC ON, AC OFF
+    # 0x0010 = DC OFF, AC ON
+    # 0x0018 = DC ON, AC ON
+    #
 
     dc_active = bool(
-        dc_state_register
+        state_register & P180_STATE_DC_BIT
     )
+
+    ac_active = bool(
+        state_register & P180_STATE_AC_BIT
+    )
+
+    #
+    # DC OUTPUT POWER
+    #
+    # R78 has been validated against both the P180 Pro
+    # display and an external DC power meter.
+    #
+    # R78 = 0 with DC enabled and no external load.
+    # R78 follows DC output power when a load is present.
+    #
 
     #
     # AC INPUT
@@ -327,10 +356,6 @@ def _parse_p180_pro_status(
     # AC charging:
     # R53 = 0x0068
     #
-    # The upper source bits in R53 are therefore used
-    # as an additional guard before exposing R03 as
-    # Solar / DC input power.
-    #
 
     solar_dc_source_active = (
         source_register & 0x0300
@@ -364,15 +389,7 @@ def _parse_p180_pro_status(
     # TIME
     #
     # R71 = Time to Full
-    #
-    # Confirmed against the P180 Pro display at several
-    # different charge rates and SOC levels.
-    #
     # R72 = Remaining Time
-    #
-    # Confirmed during net battery discharge:
-    # R72 = 179 minutes while the display showed
-    # approximately 3 hours remaining.
     #
 
     time_to_full = registers.get(
@@ -386,11 +403,11 @@ def _parse_p180_pro_status(
     )
 
     #
-    # OUTPUT
+    # AC OUTPUT POWER
     #
-    # P180 Pro output mapping remains experimental.
-    # Keep the previously tested behaviour until more
-    # controlled output tests are available.
+    # The existing P180 Pro AC output mapping remains
+    # experimental. Do not mix the newly confirmed DC
+    # power register into this calculation yet.
     #
 
     output_power = 0
@@ -446,6 +463,10 @@ def _parse_p180_pro_status(
 
         "ac_frequency_setting": (
             ac_frequency_setting
+        ),
+
+        "dc_output_power": (
+            dc_output_power
         ),
 
         "total_output_power": (
@@ -510,8 +531,14 @@ def _parse_p180_pro_status(
             state_register
         ),
 
+        "p180_dc_output_power_register": (
+            dc_output_power
+        ),
+
+        # Kept temporarily for compatibility with
+        # existing diagnostics output.
         "p180_dc_state_register": (
-            dc_state_register
+            dc_output_power
         ),
 
         "p180_source_register": (
@@ -751,6 +778,7 @@ class AferiyLocalCoordinator(
                     "AC input=%sW, "
                     "solar/DC input=%sW, "
                     "total input=%sW, "
+                    "DC output=%sW, "
                     "time to full=%smin, "
                     "remaining=%smin, "
                     "output=%sW, "
@@ -767,6 +795,9 @@ class AferiyLocalCoordinator(
                     ),
                     parsed.get(
                         "total_input_power"
+                    ),
+                    parsed.get(
+                        "dc_output_power"
                     ),
                     parsed.get(
                         "time_to_full"
