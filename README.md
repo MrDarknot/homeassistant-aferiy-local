@@ -9,7 +9,7 @@
 <p align="center">
 
 ![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5?logo=homeassistant&logoColor=white)
-![Latest Release](https://img.shields.io/github/v/release/MrDarknot/homeassistant-aferiy-local?include_prereleases=true)
+![Latest Release](https://img.shields.io/github/v/release/MrDarknot/homeassistant-aferiy-local?include_prereleases)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8.0%2B-41BDF5?logo=homeassistant&logoColor=white)
 ![License](https://img.shields.io/github/license/MrDarknot/homeassistant-aferiy-local)
 ![Read Only](https://img.shields.io/badge/Mode-Read%20Only-orange)
