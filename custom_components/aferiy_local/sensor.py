@@ -262,6 +262,15 @@ P180_PRO_SENSORS = (
     ),
 
     AferiySensorDescription(
+        key="dc_output_power",
+        data_key="dc_output_power",
+        name="DC output power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
         key="total_output_power",
         data_key="total_output_power",
         name="Total output power",
