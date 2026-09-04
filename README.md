@@ -30,7 +30,8 @@ No AFERIY account, BrightEMS account or cloud connection is required.
 |---|---|
 | AFERIY P280 | ✅ Tested and verified |
 | AFERIY P280 with expansion battery | ✅ Tested and verified |
-| AFERIY P180 Pro | 🧪 Experimental |
+| AFERIY P180 Pro | ✅ Tested and verified |
+| AFERIY 180 Pro with expansion battery | ✅ Tested and verified |
 | Other AFERIY models | ❓ Not yet verified |
 
 ## AFERIY P280
@@ -81,6 +82,8 @@ The individual USB A ports do not currently appear to expose separate power meas
 
 ### Other
 
+* Operating mode
+* Charge source
 * Total output power
 * USB output status
 * Light status
@@ -123,12 +126,16 @@ Current sensor support includes:
 
 ### Other
 
+* Operating mode
+* Charge source
 * Bluetooth connection status
 * Home Assistant diagnostics support
 
 P180 Pro support is still experimental.
 
 Battery percentage, AC input power, Solar / DC input power, DC output power, Time to full and Remaining time have been validated against values shown directly on the P180 Pro display and controlled hardware testing.
+
+Operating mode and Charge source are derived from the validated sensor values.
 
 Some output sensor mappings may change as additional testing is completed.
 
