@@ -192,18 +192,23 @@ The integration domain is:
 
 ## Diagnostics
 
-AFERIY Local includes Home Assistant diagnostics support.
+The integration includes extended diagnostics intended to help with testing and reverse engineering additional AFERIY models.
 
-Diagnostics can be downloaded directly from the integration or device page in Home Assistant.
+Diagnostics currently include:
 
-Diagnostics can help with:
+* Known register mappings
+* Research candidates
+* Interesting unknown registers
+* Registers changed since the previous poll
+* Previous register values
+* Current register values
+* Decimal and hexadecimal register dumps
+* Raw Bluetooth status packet
+* Detected device profile
 
-* Troubleshooting Bluetooth communication
-* Investigating unsupported AFERIY models
-* Comparing register values
-* Adding support for additional devices
+The diagnostics are read-only and do not send control commands to the power station.
 
-Review diagnostics before sharing them publicly.
+This information can be especially useful when testing new AFERIY models or identifying previously unknown register mappings.
 
 ## Privacy
 
