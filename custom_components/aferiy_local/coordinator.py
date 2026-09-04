@@ -122,6 +122,82 @@ def _looks_like_p180_pro(
     )
 
 
+def _derive_operating_mode(
+    input_power: float,
+    output_power: float,
+    time_to_full: int,
+    ac_active: bool,
+    dc_active: bool,
+    usb_active: bool,
+    light_active: bool,
+) -> str:
+    input_active = input_power > 0
+    output_active = output_power > 0
+
+    any_output_enabled = (
+        ac_active
+        or dc_active
+        or usb_active
+        or light_active
+    )
+
+    if input_active and time_to_full > 0:
+        if output_active:
+            return "Charging + output"
+
+        return "Charging"
+
+    if input_active and output_active:
+        return "Mixed input / output"
+
+    if input_active:
+        return "Input connected"
+
+    if output_active:
+        return "Discharging"
+
+    if any_output_enabled:
+        return "Output enabled"
+
+    return "Idle"
+
+
+def _derive_p280_charge_source(
+    total_input_power: float,
+    ac_input_voltage: float,
+    ac_input_frequency: float,
+) -> str:
+    if total_input_power <= 0:
+        return "None"
+
+    if (
+        ac_input_voltage > 20
+        or ac_input_frequency > 1
+    ):
+        return "AC"
+
+    return "Non-AC"
+
+
+def _derive_p180_charge_source(
+    ac_input_power: float,
+    solar_dc_input_power: float,
+) -> str:
+    ac_present = ac_input_power > 0
+    solar_present = solar_dc_input_power > 0
+
+    if ac_present and solar_present:
+        return "AC + Solar / DC"
+
+    if ac_present:
+        return "AC"
+
+    if solar_present:
+        return "Solar / DC"
+
+    return "None"
+
+
 def _parse_p280_status(
     data: bytes,
 ) -> dict:
@@ -130,85 +206,193 @@ def _parse_p280_status(
         41,
     )
 
+    battery_percent = (
+        _get_register(data, 56) / 10.0
+    )
+
+    battery_charge_power = (
+        _get_register(data, 3)
+    )
+
+    total_input_power = (
+        _get_register(data, 6)
+    )
+
+    dc_output_power = (
+        _get_register(data, 10) / 10.0
+    )
+
+    ac_output_voltage = (
+        _get_register(data, 18) / 10.0
+    )
+
+    ac_frequency_setting = (
+        _get_register(data, 19) / 10.0
+    )
+
+    ac_output_power = (
+        _get_register(data, 20)
+    )
+
+    ac_input_voltage = (
+        _get_register(data, 21) / 10.0
+    )
+
+    ac_input_frequency = (
+        _get_register(data, 22) / 100.0
+    )
+
+    usb_c_pd140_right_power = (
+        _get_register(data, 34) / 10.0
+    )
+
+    usb_c_pd140_left_power = (
+        _get_register(data, 35) / 10.0
+    )
+
+    usb_c_pd20_left_power = (
+        _get_register(data, 36) / 10.0
+    )
+
+    usb_c_pd20_right_power = (
+        _get_register(data, 37) / 10.0
+    )
+
+    total_output_power = (
+        _get_register(data, 39)
+    )
+
+    remaining_minutes = (
+        _get_register(data, 59)
+    )
+
+    time_to_full = (
+        _get_register(data, 58)
+    )
+
+    usb_active = bool(
+        state_flags & STATE_USB_BIT
+    )
+
+    dc_active = bool(
+        state_flags & STATE_DC_BIT
+    )
+
+    ac_active = bool(
+        state_flags & STATE_AC_BIT
+    )
+
+    light_active = bool(
+        state_flags & STATE_LIGHT_BIT
+    )
+
+    charge_source = (
+        _derive_p280_charge_source(
+            total_input_power,
+            ac_input_voltage,
+            ac_input_frequency,
+        )
+    )
+
+    operating_mode = (
+        _derive_operating_mode(
+            input_power=total_input_power,
+            output_power=total_output_power,
+            time_to_full=time_to_full,
+            ac_active=ac_active,
+            dc_active=dc_active,
+            usb_active=usb_active,
+            light_active=light_active,
+        )
+    )
+
     return {
         "battery_percent": (
-            _get_register(data, 56) / 10.0
+            battery_percent
         ),
 
         "battery_charge_power": (
-            _get_register(data, 3)
+            battery_charge_power
         ),
 
         "total_input_power": (
-            _get_register(data, 6)
+            total_input_power
         ),
 
         "dc_output_power": (
-            _get_register(data, 10) / 10.0
+            dc_output_power
         ),
 
         "ac_output_voltage": (
-            _get_register(data, 18) / 10.0
+            ac_output_voltage
         ),
 
         "ac_frequency_setting": (
-            _get_register(data, 19) / 10.0
+            ac_frequency_setting
         ),
 
         "ac_output_power": (
-            _get_register(data, 20)
+            ac_output_power
         ),
 
         "ac_input_voltage": (
-            _get_register(data, 21) / 10.0
+            ac_input_voltage
         ),
 
         "ac_input_frequency": (
-            _get_register(data, 22) / 100.0
+            ac_input_frequency
         ),
 
         "usb_c_pd140_right_power": (
-            _get_register(data, 34) / 10.0
+            usb_c_pd140_right_power
         ),
 
         "usb_c_pd140_left_power": (
-            _get_register(data, 35) / 10.0
+            usb_c_pd140_left_power
         ),
 
         "usb_c_pd20_left_power": (
-            _get_register(data, 36) / 10.0
+            usb_c_pd20_left_power
         ),
 
         "usb_c_pd20_right_power": (
-            _get_register(data, 37) / 10.0
+            usb_c_pd20_right_power
         ),
 
         "total_output_power": (
-            _get_register(data, 39)
+            total_output_power
         ),
 
         "remaining_minutes": (
-            _get_register(data, 59)
+            remaining_minutes
         ),
 
         "time_to_full": (
-            _get_register(data, 58)
+            time_to_full
         ),
 
-        "usb_active": bool(
-            state_flags & STATE_USB_BIT
+        "charge_source": (
+            charge_source
         ),
 
-        "dc_active": bool(
-            state_flags & STATE_DC_BIT
+        "operating_mode": (
+            operating_mode
         ),
 
-        "ac_active": bool(
-            state_flags & STATE_AC_BIT
+        "usb_active": (
+            usb_active
         ),
 
-        "light_active": bool(
-            state_flags & STATE_LIGHT_BIT
+        "dc_active": (
+            dc_active
+        ),
+
+        "ac_active": (
+            ac_active
+        ),
+
+        "light_active": (
+            light_active
         ),
 
         "connected": True,
@@ -284,22 +468,6 @@ def _parse_p180_pro_status(
         0,
     )
 
-    #
-    # OUTPUT STATUS
-    #
-    # Controlled P180 Pro testing confirmed:
-    #
-    # R75 bit 0x08 = DC output enabled
-    # R75 bit 0x10 = AC output enabled
-    #
-    # Example:
-    #
-    # 0x0000 = DC OFF, AC OFF
-    # 0x0008 = DC ON, AC OFF
-    # 0x0010 = DC OFF, AC ON
-    # 0x0018 = DC ON, AC ON
-    #
-
     dc_active = bool(
         state_register & P180_STATE_DC_BIT
     )
@@ -307,28 +475,6 @@ def _parse_p180_pro_status(
     ac_active = bool(
         state_register & P180_STATE_AC_BIT
     )
-
-    #
-    # DC OUTPUT POWER
-    #
-    # R78 has been validated against both the P180 Pro
-    # display and an external DC power meter.
-    #
-    # R78 = 0 with DC enabled and no external load.
-    # R78 follows DC output power when a load is present.
-    #
-
-    #
-    # AC INPUT
-    #
-    # R02 = AC input power.
-    #
-    # R08 occasionally reports a few volts of noise
-    # when no AC source is connected.
-    #
-    # If both AC power and AC frequency are zero,
-    # report AC input voltage as zero as well.
-    #
 
     if (
         ac_input_power == 0
@@ -339,23 +485,6 @@ def _parse_p180_pro_status(
         ac_input_voltage = (
             raw_ac_input_voltage
         )
-
-    #
-    # SOLAR / DC INPUT
-    #
-    # Controlled tests:
-    #
-    # Solar charging:
-    # R03 = displayed solar input
-    # R53 = 0x0300
-    #
-    # Solar input while AC output is active:
-    # R03 = displayed solar input
-    # R53 = 0x0310
-    #
-    # AC charging:
-    # R53 = 0x0068
-    #
 
     solar_dc_source_active = (
         source_register & 0x0300
@@ -368,14 +497,6 @@ def _parse_p180_pro_status(
     else:
         solar_dc_input_power = 0
 
-    #
-    # TOTAL INPUT
-    #
-    # AC and Solar / DC have been validated separately.
-    # Simultaneous AC + Solar charging has not yet been
-    # validated, so preserve source priority for now.
-    #
-
     if ac_input_power > 0:
         total_input_power = (
             ac_input_power
@@ -384,13 +505,6 @@ def _parse_p180_pro_status(
         total_input_power = (
             solar_dc_input_power
         )
-
-    #
-    # TIME
-    #
-    # R71 = Time to Full
-    # R72 = Remaining Time
-    #
 
     time_to_full = registers.get(
         71,
@@ -401,14 +515,6 @@ def _parse_p180_pro_status(
         72,
         0,
     )
-
-    #
-    # AC OUTPUT POWER
-    #
-    # The existing P180 Pro AC output mapping remains
-    # experimental. Do not mix the newly confirmed DC
-    # power register into this calculation yet.
-    #
 
     output_power = 0
 
@@ -427,6 +533,29 @@ def _parse_p180_pro_status(
             output_power = (
                 power_channel_1
             )
+
+    combined_output_power = (
+        output_power + dc_output_power
+    )
+
+    charge_source = (
+        _derive_p180_charge_source(
+            ac_input_power,
+            solar_dc_input_power,
+        )
+    )
+
+    operating_mode = (
+        _derive_operating_mode(
+            input_power=total_input_power,
+            output_power=combined_output_power,
+            time_to_full=time_to_full,
+            ac_active=ac_active,
+            dc_active=dc_active,
+            usb_active=False,
+            light_active=False,
+        )
+    )
 
     return {
         "battery_percent": float(
@@ -489,6 +618,14 @@ def _parse_p180_pro_status(
             time_to_full
         ),
 
+        "charge_source": (
+            charge_source
+        ),
+
+        "operating_mode": (
+            operating_mode
+        ),
+
         "usb_active": False,
 
         "dc_active": (
@@ -506,10 +643,6 @@ def _parse_p180_pro_status(
         "device_profile": (
             "p180_pro"
         ),
-
-        #
-        # DEBUG / RESEARCH VALUES
-        #
 
         "battery_voltage_candidate": (
             battery_voltage_candidate
@@ -535,8 +668,6 @@ def _parse_p180_pro_status(
             dc_output_power
         ),
 
-        # Kept temporarily for compatibility with
-        # existing diagnostics output.
         "p180_dc_state_register": (
             dc_output_power
         ),
@@ -603,7 +734,6 @@ class AferiyLocalCoordinator(
 
         self._p180_profile_locked = False
 
-
     async def _find_device(self):
         device = bluetooth.async_ble_device_from_address(
             self.hass,
@@ -634,7 +764,6 @@ class AferiyLocalCoordinator(
             f"AFERIY power station not reachable: {self.address}"
         )
 
-
     async def _async_update_data(
         self,
     ) -> dict:
@@ -646,7 +775,6 @@ class AferiyLocalCoordinator(
 
         response_event = asyncio.Event()
         received_data: bytes | None = None
-
 
         def notification_handler(
             _sender,
@@ -663,7 +791,6 @@ class AferiyLocalCoordinator(
             ):
                 received_data = raw
                 response_event.set()
-
 
         client = None
 
@@ -771,50 +898,31 @@ class AferiyLocalCoordinator(
                 active_profile,
             )
 
-            if active_profile == "p180_pro":
-                _LOGGER.debug(
-                    "P180 Pro parsed values: "
-                    "battery=%s%%, "
-                    "AC input=%sW, "
-                    "solar/DC input=%sW, "
-                    "total input=%sW, "
-                    "DC output=%sW, "
-                    "time to full=%smin, "
-                    "remaining=%smin, "
-                    "output=%sW, "
-                    "AC=%s, "
-                    "DC=%s",
-                    parsed.get(
-                        "battery_percent"
-                    ),
-                    parsed.get(
-                        "ac_input_power"
-                    ),
-                    parsed.get(
-                        "solar_dc_input_power"
-                    ),
-                    parsed.get(
-                        "total_input_power"
-                    ),
-                    parsed.get(
-                        "dc_output_power"
-                    ),
-                    parsed.get(
-                        "time_to_full"
-                    ),
-                    parsed.get(
-                        "remaining_minutes"
-                    ),
-                    parsed.get(
-                        "output_power"
-                    ),
-                    parsed.get(
-                        "ac_active"
-                    ),
-                    parsed.get(
-                        "dc_active"
-                    ),
-                )
+            _LOGGER.debug(
+                "AFERIY status: "
+                "profile=%s, "
+                "battery=%s%%, "
+                "input=%sW, "
+                "output=%sW, "
+                "charge_source=%s, "
+                "operating_mode=%s",
+                active_profile,
+                parsed.get(
+                    "battery_percent"
+                ),
+                parsed.get(
+                    "total_input_power"
+                ),
+                parsed.get(
+                    "total_output_power"
+                ),
+                parsed.get(
+                    "charge_source"
+                ),
+                parsed.get(
+                    "operating_mode"
+                ),
+            )
 
             return parsed
 
