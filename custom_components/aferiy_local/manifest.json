@@ -1,7 +1,7 @@
 {
   "domain": "aferiy_local",
   "name": "AFERIY Local for Home Assistant",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "documentation": "https://github.com/MrDarknot/homeassistant-aferiy-local",
   "issue_tracker": "https://github.com/MrDarknot/homeassistant-aferiy-local/issues",
   "codeowners": [
