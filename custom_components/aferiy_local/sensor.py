@@ -54,6 +54,18 @@ P280_SENSORS = (
     ),
 
     AferiySensorDescription(
+        key="operating_mode",
+        data_key="operating_mode",
+        name="Operating mode",
+    ),
+
+    AferiySensorDescription(
+        key="charge_source",
+        data_key="charge_source",
+        name="Charge source",
+    ),
+
+    AferiySensorDescription(
         key="battery_charge_power",
         data_key="battery_charge_power",
         name="Battery charge power",
@@ -196,6 +208,18 @@ P180_PRO_SENSORS = (
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="operating_mode",
+        data_key="operating_mode",
+        name="Operating mode",
+    ),
+
+    AferiySensorDescription(
+        key="charge_source",
+        data_key="charge_source",
+        name="Charge source",
     ),
 
     AferiySensorDescription(
