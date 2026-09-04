@@ -131,13 +131,13 @@ Current sensor support includes:
 * Bluetooth connection status
 * Home Assistant diagnostics support
 
-P180 Pro support is still experimental.
+The P180 Pro now has broad read-only support, including battery status, AC input, Solar / DC input, AC and DC output information, remaining runtime, charging time, output states, Operating mode and Charge source.
 
-Battery percentage, AC input power, Solar / DC input power, DC output power, Time to full and Remaining time have been validated against values shown directly on the P180 Pro display and controlled hardware testing.
+Most currently exposed P180 Pro read-only sensors have been validated through controlled hardware testing and comparison with the P180 Pro display.
 
 Operating mode and Charge source are derived from the validated sensor values.
 
-Some output sensor mappings may change as additional testing is completed.
+P180 Pro support is still considered experimental, and some individual output power mappings may be refined as additional testing is completed.
 
 ## Requirements
 
