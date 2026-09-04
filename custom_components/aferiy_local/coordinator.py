@@ -307,96 +307,29 @@ def _parse_p280_status(
     )
 
     return {
-        "battery_percent": (
-            battery_percent
-        ),
-
-        "battery_charge_power": (
-            battery_charge_power
-        ),
-
-        "total_input_power": (
-            total_input_power
-        ),
-
-        "dc_output_power": (
-            dc_output_power
-        ),
-
-        "ac_output_voltage": (
-            ac_output_voltage
-        ),
-
-        "ac_frequency_setting": (
-            ac_frequency_setting
-        ),
-
-        "ac_output_power": (
-            ac_output_power
-        ),
-
-        "ac_input_voltage": (
-            ac_input_voltage
-        ),
-
-        "ac_input_frequency": (
-            ac_input_frequency
-        ),
-
-        "usb_c_pd140_right_power": (
-            usb_c_pd140_right_power
-        ),
-
-        "usb_c_pd140_left_power": (
-            usb_c_pd140_left_power
-        ),
-
-        "usb_c_pd20_left_power": (
-            usb_c_pd20_left_power
-        ),
-
-        "usb_c_pd20_right_power": (
-            usb_c_pd20_right_power
-        ),
-
-        "total_output_power": (
-            total_output_power
-        ),
-
-        "remaining_minutes": (
-            remaining_minutes
-        ),
-
-        "time_to_full": (
-            time_to_full
-        ),
-
-        "charge_source": (
-            charge_source
-        ),
-
-        "operating_mode": (
-            operating_mode
-        ),
-
-        "usb_active": (
-            usb_active
-        ),
-
-        "dc_active": (
-            dc_active
-        ),
-
-        "ac_active": (
-            ac_active
-        ),
-
-        "light_active": (
-            light_active
-        ),
-
+        "battery_percent": battery_percent,
+        "battery_charge_power": battery_charge_power,
+        "total_input_power": total_input_power,
+        "dc_output_power": dc_output_power,
+        "ac_output_voltage": ac_output_voltage,
+        "ac_frequency_setting": ac_frequency_setting,
+        "ac_output_power": ac_output_power,
+        "ac_input_voltage": ac_input_voltage,
+        "ac_input_frequency": ac_input_frequency,
+        "usb_c_pd140_right_power": usb_c_pd140_right_power,
+        "usb_c_pd140_left_power": usb_c_pd140_left_power,
+        "usb_c_pd20_left_power": usb_c_pd20_left_power,
+        "usb_c_pd20_right_power": usb_c_pd20_right_power,
+        "total_output_power": total_output_power,
+        "remaining_minutes": remaining_minutes,
+        "time_to_full": time_to_full,
+        "charge_source": charge_source,
+        "operating_mode": operating_mode,
+        "usb_active": usb_active,
+        "dc_active": dc_active,
+        "ac_active": ac_active,
+        "light_active": light_active,
         "connected": True,
-
         "device_profile": "p280",
     }
 
@@ -727,7 +660,18 @@ class AferiyLocalCoordinator(
         ]
 
         self.last_raw_packet: bytes | None = None
+
         self.last_registers: dict[int, int] = {}
+
+        # Used by diagnostics to compare the two most
+        # recent successful status packets.
+        self.previous_registers: dict[int, int] = {}
+
+        self.last_register_changes: dict[
+            int,
+            dict[str, int],
+        ] = {}
+
         self.last_device_name: str | None = None
         self.last_packet_length: int = 0
         self.last_profile_candidate: str = "unknown"
@@ -835,10 +779,41 @@ class AferiyLocalCoordinator(
                 received_data
             )
 
-            self.last_registers = (
+            new_registers = (
                 _get_all_registers(
                     received_data
                 )
+            )
+
+            if self.last_registers:
+                self.previous_registers = dict(
+                    self.last_registers
+                )
+
+                self.last_register_changes = {
+                    register: {
+                        "previous": (
+                            self.last_registers.get(
+                                register,
+                                0,
+                            )
+                        ),
+                        "current": value,
+                    }
+                    for register, value
+                    in new_registers.items()
+                    if self.last_registers.get(
+                        register,
+                        0,
+                    ) != value
+                }
+
+            else:
+                self.previous_registers = {}
+                self.last_register_changes = {}
+
+            self.last_registers = (
+                new_registers
             )
 
             if _looks_like_p180_pro(
@@ -880,6 +855,20 @@ class AferiyLocalCoordinator(
                     in self.last_registers.items()
                 ),
             )
+
+            if self.last_register_changes:
+                _LOGGER.debug(
+                    "AFERIY changed registers: %s",
+                    ", ".join(
+                        (
+                            f"R{register:02d}: "
+                            f"{values['previous']} -> "
+                            f"{values['current']}"
+                        )
+                        for register, values
+                        in self.last_register_changes.items()
+                    ),
+                )
 
             _LOGGER.debug(
                 "AFERIY detected profile candidate for %s: %s",
