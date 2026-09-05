@@ -4,9 +4,11 @@ import asyncio
 import logging
 from datetime import timedelta
 
-from bleak.exc import BleakError
+from bleak.exc import BleakCharacteristicNotFoundError, BleakError
 from bleak_retry_connector import (
     BleakClientWithServiceCache,
+    clear_cache,
+    close_stale_connections_by_address,
     establish_connection,
 )
 
@@ -430,14 +432,13 @@ def _parse_p180_pro_status(
     else:
         solar_dc_input_power = 0
 
-    if ac_input_power > 0:
-        total_input_power = (
-            ac_input_power
-        )
-    else:
-        total_input_power = (
-            solar_dc_input_power
-        )
+    # P180 Pro can accept AC and Solar / DC input
+    # at the same time, so Total input power must
+    # be the sum of both input sources.
+    total_input_power = (
+        ac_input_power
+        + solar_dc_input_power
+    )
 
     time_to_full = registers.get(
         71,
@@ -532,7 +533,7 @@ def _parse_p180_pro_status(
         ),
 
         "total_output_power": (
-            output_power
+            combined_output_power
         ),
 
         "output_power": (
@@ -663,8 +664,6 @@ class AferiyLocalCoordinator(
 
         self.last_registers: dict[int, int] = {}
 
-        # Used by diagnostics to compare the two most
-        # recent successful status packets.
         self.previous_registers: dict[int, int] = {}
 
         self.last_register_changes: dict[
@@ -678,21 +677,25 @@ class AferiyLocalCoordinator(
 
         self._p180_profile_locked = False
 
-    async def _find_device(self):
-        device = bluetooth.async_ble_device_from_address(
-            self.hass,
-            self.address,
-            connectable=True,
-        )
+    async def _find_device(
+        self,
+        force_scan: bool = False,
+    ):
+        if not force_scan:
+            device = bluetooth.async_ble_device_from_address(
+                self.hass,
+                self.address,
+                connectable=True,
+            )
 
-        if device is not None:
-            return device
+            if device is not None:
+                return device
 
         await bluetooth.async_request_active_scan(
             self.hass
         )
 
-        for _ in range(15):
+        for _ in range(20):
             await asyncio.sleep(1)
 
             device = bluetooth.async_ble_device_from_address(
@@ -708,10 +711,96 @@ class AferiyLocalCoordinator(
             f"AFERIY power station not reachable: {self.address}"
         )
 
-    async def _async_update_data(
+    async def _disconnect_client(
         self,
+        client,
+        *,
+        clear_client_cache: bool = False,
+    ) -> None:
+        if client is None:
+            return
+
+        try:
+            if clear_client_cache:
+                try:
+                    await client.clear_cache()
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.debug(
+                        "Unable to clear AFERIY client service cache: %s",
+                        err,
+                    )
+
+            if client.is_connected:
+                try:
+                    await client.stop_notify(
+                        NOTIFY_UUID
+                    )
+                except Exception:
+                    pass
+
+                await client.disconnect()
+
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "Error while disconnecting AFERIY client: %s",
+                err,
+            )
+
+    async def _reset_bluetooth_cache(
+        self,
+        client=None,
+    ) -> None:
+        """Clear stale BLE/GATT state before a fresh reconnect."""
+        _LOGGER.warning(
+            "Resetting Bluetooth/GATT cache for AFERIY %s",
+            self.address,
+        )
+
+        await self._disconnect_client(
+            client,
+            clear_client_cache=True,
+        )
+
+        try:
+            await close_stale_connections_by_address(
+                self.address
+            )
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "Unable to close stale AFERIY connections: %s",
+                err,
+            )
+
+        try:
+            cache_cleared = await clear_cache(
+                self.address
+            )
+
+            _LOGGER.debug(
+                "BlueZ cache clear for AFERIY %s returned %s",
+                self.address,
+                cache_cleared,
+            )
+
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "Unable to clear BlueZ cache for AFERIY: %s",
+                err,
+            )
+
+        await bluetooth.async_request_active_scan(
+            self.hass
+        )
+
+    async def _read_status_once(
+        self,
+        *,
+        use_services_cache: bool,
+        force_scan: bool,
     ) -> dict:
-        ble_device = await self._find_device()
+        ble_device = await self._find_device(
+            force_scan=force_scan
+        )
 
         self.last_device_name = (
             ble_device.name or "Unknown"
@@ -743,7 +832,8 @@ class AferiyLocalCoordinator(
                 BleakClientWithServiceCache,
                 ble_device,
                 ble_device.name or "AFERIY Power Station",
-                max_attempts=3,
+                max_attempts=4,
+                use_services_cache=use_services_cache,
             )
 
             await client.start_notify(
@@ -785,6 +875,7 @@ class AferiyLocalCoordinator(
                 )
             )
 
+            # Preserve v0.3.1 diagnostics register-change tracking.
             if self.last_registers:
                 self.previous_registers = dict(
                     self.last_registers
@@ -822,9 +913,7 @@ class AferiyLocalCoordinator(
                 self.last_profile_candidate = (
                     "p180_pro"
                 )
-
                 self._p180_profile_locked = True
-
             else:
                 self.last_profile_candidate = (
                     "standard"
@@ -915,10 +1004,66 @@ class AferiyLocalCoordinator(
 
             return parsed
 
+        finally:
+            await self._disconnect_client(
+                client
+            )
+
+    async def _async_update_data(
+        self,
+    ) -> dict:
+        """Fetch AFERIY status and recover automatically from stale BLE state."""
+        try:
+            return await self._read_status_once(
+                use_services_cache=True,
+                force_scan=False,
+            )
+
+        except BleakCharacteristicNotFoundError as err:
+            _LOGGER.warning(
+                "AFERIY characteristic missing (%s). "
+                "Clearing Bluetooth/GATT cache and retrying once without cache.",
+                err,
+            )
+
+            await self._reset_bluetooth_cache()
+
+            try:
+                return await self._read_status_once(
+                    use_services_cache=False,
+                    force_scan=True,
+                )
+
+            except Exception as retry_err:  # noqa: BLE001
+                raise UpdateFailed(
+                    "AFERIY Bluetooth recovery failed after missing "
+                    "characteristic: "
+                    f"{type(retry_err).__name__}: {retry_err}"
+                ) from retry_err
+
         except asyncio.TimeoutError as err:
-            raise UpdateFailed(
-                "Timed out waiting for AFERIY status"
-            ) from err
+            _LOGGER.warning(
+                "Timed out waiting for AFERIY status. "
+                "Clearing stale Bluetooth state and retrying once."
+            )
+
+            await self._reset_bluetooth_cache()
+
+            try:
+                return await self._read_status_once(
+                    use_services_cache=False,
+                    force_scan=True,
+                )
+
+            except Exception as retry_err:  # noqa: BLE001
+                raise UpdateFailed(
+                    "Timed out waiting for AFERIY status and recovery "
+                    "retry failed: "
+                    f"{type(retry_err).__name__}: {retry_err}"
+                ) from retry_err
+
+        except UpdateFailed:
+            raise
 
         except BleakError as err:
             raise UpdateFailed(
@@ -936,16 +1081,3 @@ class AferiyLocalCoordinator(
                 f"Unexpected error: "
                 f"{type(err).__name__}: {err}"
             ) from err
-
-        finally:
-            if client is not None:
-                try:
-                    if client.is_connected:
-                        await client.stop_notify(
-                            NOTIFY_UUID
-                        )
-
-                        await client.disconnect()
-
-                except Exception:
-                    pass
