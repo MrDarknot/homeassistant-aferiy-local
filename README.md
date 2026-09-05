@@ -31,7 +31,7 @@ No AFERIY account, BrightEMS account or cloud connection is required.
 | AFERIY P280 | ✅ Tested and verified |
 | AFERIY P280 with expansion battery | ✅ Tested and verified |
 | AFERIY P180 Pro | ✅ Tested and verified |
-| AFERIY 180 Pro with expansion battery | ✅ Tested and verified |
+| AFERIY P180 Pro with expansion battery | ✅ Tested and verified |
 | Other AFERIY models | ❓ Not yet verified |
 
 ## AFERIY P280
@@ -111,6 +111,12 @@ Current sensor support includes:
 * AC input voltage
 * AC input frequency
 
+Total input power is calculated as:
+
+`AC input power + Solar / DC input power`
+
+This allows simultaneous AC and Solar / DC charging to be reported correctly.
+
 ### AC output
 
 * AC output voltage
@@ -123,6 +129,8 @@ Current sensor support includes:
 
 * DC output power
 * DC output status
+
+Total output power combines AC output power and DC output power.
 
 ### Other
 
@@ -190,6 +198,21 @@ The integration domain is:
 
 `aferiy_local`
 
+## Bluetooth recovery
+
+The integration includes automatic Bluetooth recovery for stale BLE and GATT connections.
+
+If a Bluetooth characteristic is missing or a status request times out, the integration can automatically:
+
+* Clear the Bluetooth and GATT cache
+* Close stale Bluetooth connections
+* Perform a fresh active Bluetooth scan
+* Retry the connection without cached service data
+
+The recovery process performs a single controlled retry after clearing stale Bluetooth state.
+
+This is intended to improve long-term Bluetooth stability and reduce the need for manual Home Assistant or integration restarts.
+
 ## Diagnostics
 
 The integration includes extended diagnostics intended to help with testing and reverse engineering additional AFERIY models.
@@ -249,7 +272,7 @@ BrightEMS protocol research based in part on ESP FBot by Ylianst.
 
 Thanks to community members helping test additional AFERIY hardware.
 
-Special thanks to **FreeZerHam** for helping test and validate AFERIY P180 Pro support.
+Special thanks to **FreezerHam** for helping test and validate AFERIY P180 Pro support.
 
 ## Disclaimer
 
