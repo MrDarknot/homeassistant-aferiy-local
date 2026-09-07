@@ -165,20 +165,22 @@ def _derive_operating_mode(
 
 
 def _derive_p280_charge_source(
-    total_input_power: float,
-    ac_input_voltage: float,
-    ac_input_frequency: float,
+    ac_input_power: float,
+    solar_dc_input_power: float,
 ) -> str:
-    if total_input_power <= 0:
-        return "None"
+    ac_present = ac_input_power > 0
+    solar_present = solar_dc_input_power > 0
 
-    if (
-        ac_input_voltage > 20
-        or ac_input_frequency > 1
-    ):
+    if ac_present and solar_present:
+        return "AC + Solar / DC"
+
+    if ac_present:
         return "AC"
 
-    return "Non-AC"
+    if solar_present:
+        return "Solar / DC"
+
+    return "None"
 
 
 def _derive_p180_charge_source(
@@ -212,8 +214,21 @@ def _parse_p280_status(
         _get_register(data, 56) / 10.0
     )
 
-    battery_charge_power = (
+    # Controlled P280 testing confirmed:
+    #
+    # R03 = AC input power
+    # R04 = Solar / DC input power
+    # R06 = Total input power
+    #
+    # Both physical Solar / DC inputs report through R04.
+    # With simultaneous AC + Solar / DC charging, R03 and
+    # R04 remain source-specific while R06 reports total input.
+    ac_input_power = (
         _get_register(data, 3)
+    )
+
+    solar_dc_input_power = (
+        _get_register(data, 4)
     )
 
     total_input_power = (
@@ -290,9 +305,8 @@ def _parse_p280_status(
 
     charge_source = (
         _derive_p280_charge_source(
-            total_input_power,
-            ac_input_voltage,
-            ac_input_frequency,
+            ac_input_power,
+            solar_dc_input_power,
         )
     )
 
@@ -310,7 +324,13 @@ def _parse_p280_status(
 
     return {
         "battery_percent": battery_percent,
-        "battery_charge_power": battery_charge_power,
+
+        # Compatibility alias retained for now because older
+        # versions exposed R03 under this key.
+        "battery_charge_power": ac_input_power,
+
+        "ac_input_power": ac_input_power,
+        "solar_dc_input_power": solar_dc_input_power,
         "total_input_power": total_input_power,
         "dc_output_power": dc_output_power,
         "ac_output_voltage": ac_output_voltage,
