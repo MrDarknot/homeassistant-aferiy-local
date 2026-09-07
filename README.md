@@ -41,7 +41,6 @@ The P280 currently provides:
 ### Battery
 
 * Battery percentage
-* Battery charge power
 * Remaining time
 * Time to full
 
@@ -49,9 +48,36 @@ Battery percentage and Time to full have also been tested with an AFERIY expansi
 
 ### Input
 
+* AC input power
+* Solar / DC input power
 * Total input power
 * AC input voltage
 * AC input frequency
+
+Controlled hardware testing has confirmed separate AC and Solar / DC input measurements on the P280.
+
+The P280 can report AC and Solar / DC input at the same time.
+
+For example:
+
+`AC input power: 901 W`
+
+`Solar / DC input power: 49 W`
+
+`Total input power: 953 W`
+
+Total input power is reported directly by the power station.
+
+Both physical Solar / DC input ports have been tested individually and report through the same Solar / DC input power measurement.
+
+Simultaneous dual Solar / DC port aggregation has not yet been verified.
+
+Charge source can currently report:
+
+* AC
+* Solar / DC
+* AC + Solar / DC
+* None
 
 ### AC output
 
