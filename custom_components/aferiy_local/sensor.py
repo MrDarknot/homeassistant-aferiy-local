@@ -66,9 +66,18 @@ P280_SENSORS = (
     ),
 
     AferiySensorDescription(
-        key="battery_charge_power",
-        data_key="battery_charge_power",
-        name="Battery charge power",
+        key="ac_input_power",
+        data_key="ac_input_power",
+        name="AC input power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+
+    AferiySensorDescription(
+        key="solar_dc_input_power",
+        data_key="solar_dc_input_power",
+        name="Solar / DC input power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
