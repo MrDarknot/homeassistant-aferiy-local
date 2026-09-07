@@ -10,7 +10,8 @@ from .coordinator import AferiyLocalCoordinator
 
 
 P280_KNOWN_MAPPINGS = {
-    "R03": "Battery charge power (W)",
+    "R03": "AC input power (W)",
+    "R04": "Solar / DC input power (W)",
     "R06": "Total input power (W)",
     "R10": "DC output power / 10 (W)",
     "R18": "AC output voltage / 10 (V)",
