@@ -118,7 +118,13 @@ The individual USB A ports do not currently appear to expose separate power meas
 
 ## AFERIY P180 Pro
 
+## AFERIY P180 Pro
+
 Experimental support is included for the AFERIY P180 Pro.
+
+Multiple P180 Pro hardware / firmware variants are now supported.
+
+Testing has confirmed that some P180 Pro units use different internal profile markers while still sharing the same Bluetooth register layout. The integration automatically detects both currently known P180 Pro variants and applies the correct sensor mappings.
 
 Current sensor support includes:
 
