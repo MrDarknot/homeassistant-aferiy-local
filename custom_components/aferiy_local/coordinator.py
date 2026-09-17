@@ -114,14 +114,40 @@ def _looks_like_p180_pro(
 ) -> bool:
     battery = registers.get(31, 0)
 
-    return (
-        0 <= battery <= 100
-        and registers.get(36) == 0x3000
-        and registers.get(38) == 0x3000
+    if not 0 <= battery <= 100:
+        return False
+
+    # Both known P180 Pro variants use R36 = 0x3000.
+    #
+    # Older/previously tested units also expose:
+    #   R38 = 0x3000
+    #   R63 = 0x352C
+    #   R60 == R61
+    #   R66 == R67
+    #
+    # A newer P180 Pro variant has now been observed with:
+    #   R36 = 0x3000
+    #   R38 = 0x0000
+    #   R63 = 0x0000
+    # while still using the P180 register layout.
+    #
+    # R11 is the AC frequency setting and is expected to be
+    # 50.0 Hz or 60.0 Hz (raw 500 / 600) on P180 Pro.
+    if registers.get(36) != 0x3000:
+        return False
+
+    legacy_profile = (
+        registers.get(38) == 0x3000
         and registers.get(63) == 0x352C
         and registers.get(60) == registers.get(61)
         and registers.get(66) == registers.get(67)
     )
+
+    newer_profile = (
+        registers.get(11) in (500, 600)
+    )
+
+    return legacy_profile or newer_profile
 
 
 def _derive_operating_mode(
