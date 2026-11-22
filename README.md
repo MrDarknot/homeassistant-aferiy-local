@@ -32,6 +32,7 @@ No AFERIY account, BrightEMS account or cloud connection is required.
 | AFERIY P280 with expansion battery | ✅ Tested and verified |
 | AFERIY P180 Pro | ✅ Tested and verified |
 | AFERIY P180 Pro with expansion battery | ✅ Tested and verified |
+| AFERIY Nomad 1800 | 🧪 Experimental |
 | Other AFERIY models | ❓ Not yet verified |
 
 ## AFERIY P280
@@ -178,6 +179,30 @@ Most currently exposed P180 Pro read-only sensors have been validated through co
 Operating mode and Charge source are derived from the validated sensor values.
 
 P180 Pro support is still considered experimental, and some individual output power mappings may be refined as additional testing is completed.
+
+## AFERIY Nomad 1800
+
+Experimental support is included for the AFERIY Nomad 1800, which advertises itself over Bluetooth as `POWER-V1-xxxx`.
+
+The Nomad 1800 shares the P180-family register layout and is detected automatically by its Bluetooth name.
+
+The following read-only sensors are provided:
+
+* Battery percentage
+* AC input power / voltage / frequency
+* Solar / DC input power
+* Total input power
+* AC output voltage and frequency
+* AC / DC output power and output states
+* Light state and light mode (Off / Steady / SOS / Flash)
+* Remaining time and time to full
+* Operating mode and Charge source
+
+Remaining time has been validated against the Nomad 1800 display (for example `2d 8h 1m` corresponds to 3361 minutes).
+
+The light state (R75 bit 0x0002) and light mode register (R79: 0=Off, 1=Steady, 2=SOS, 3=Flash) were confirmed with controlled hardware testing.
+
+Nomad 1800 support is experimental; remaining mappings may be refined as additional testing is completed.
 
 ## Requirements
 

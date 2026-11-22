@@ -87,6 +87,24 @@ P180_PROFILE_MARKERS = {
 }
 
 
+NOMAD_1800_KNOWN_MAPPINGS = {
+    **P180_KNOWN_MAPPINGS,
+    "R75": (
+        "Output state flags: "
+        "Light=0x0002, DC=0x0008, AC=0x0010"
+    ),
+    "R79": (
+        "Light mode: "
+        "0=Off, 1=Steady, 2=SOS, 3=Flash"
+    ),
+}
+
+
+NOMAD_1800_RESEARCH_CANDIDATES = dict(
+    P180_RESEARCH_CANDIDATES
+)
+
+
 def _register_name(
     register: int,
 ) -> str:
@@ -186,7 +204,7 @@ def _interesting_unknown_registers(
     registers: dict[int, int],
     profile: str,
 ) -> dict[str, dict[str, Any]]:
-    if profile == "p180_pro":
+    if profile in ("p180_pro", "nomad_1800"):
         known = _mapping_register_numbers(
             P180_KNOWN_MAPPINGS
         )
@@ -251,6 +269,11 @@ def _known_mappings(
             P180_KNOWN_MAPPINGS
         )
 
+    if profile == "nomad_1800":
+        return dict(
+            NOMAD_1800_KNOWN_MAPPINGS
+        )
+
     return dict(
         P280_KNOWN_MAPPINGS
     )
@@ -262,6 +285,11 @@ def _research_candidates(
     if profile == "p180_pro":
         return dict(
             P180_RESEARCH_CANDIDATES
+        )
+
+    if profile == "nomad_1800":
+        return dict(
+            NOMAD_1800_RESEARCH_CANDIDATES
         )
 
     return dict(
