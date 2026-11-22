@@ -348,6 +348,15 @@ P180_PRO_SENSORS = (
 )
 
 
+NOMAD_1800_SENSORS = P180_PRO_SENSORS + (
+    AferiySensorDescription(
+        key="light_mode",
+        data_key="light_mode",
+        name="Light mode",
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -362,7 +371,9 @@ async def async_setup_entry(
         "p280",
     )
 
-    if profile == "p180_pro":
+    if profile == "nomad_1800":
+        sensors = NOMAD_1800_SENSORS
+    elif profile == "p180_pro":
         sensors = P180_PRO_SENSORS
     else:
         sensors = P280_SENSORS
@@ -411,6 +422,8 @@ class AferiyPowerStationSensor(
 
         if profile == "p180_pro":
             model = "P180 Pro"
+        elif profile == "nomad_1800":
+            model = "Nomad 1800"
         else:
             model = "P280"
 

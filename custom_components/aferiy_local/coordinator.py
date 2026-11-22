@@ -38,6 +38,14 @@ STATE_LIGHT_BIT = 0x1000
 P180_STATE_DC_BIT = 0x0008
 P180_STATE_AC_BIT = 0x0010
 
+NOMAD_1800_BLE_PREFIX = "POWER-V1"
+
+# Confirmed by controlled light toggles on a Nomad 1800:
+# R75 bit 1 (0x0002) = light on, and R79 carries the light
+# mode (0=Off, 1=Steady, 2=SOS, 3=Flash).
+NOMAD_STATE_LIGHT_BIT = 0x0002
+NOMAD_LIGHT_MODE_REGISTER = 79
+
 
 def _crc16_modbus(data: bytes) -> int:
     crc = 0xFFFF
@@ -148,6 +156,29 @@ def _looks_like_p180_pro(
     )
 
     return legacy_profile or newer_profile
+
+
+def _looks_like_nomad_1800(
+    device_name: str | None,
+    registers: dict[int, int],
+) -> bool:
+    # The AFERIY Nomad 1800 advertises itself as
+    # POWER-V1-xxxx and shares the P180-family
+    # register layout, but it additionally has a
+    # built-in light and its own model identity.
+    if not (
+        device_name or ""
+    ).upper().startswith(
+        NOMAD_1800_BLE_PREFIX
+    ):
+        return False
+
+    battery = registers.get(31, 0)
+
+    return (
+        0 <= battery <= 100
+        and registers.get(36) == 0x3000
+    )
 
 
 def _derive_operating_mode(
@@ -382,8 +413,10 @@ def _parse_p280_status(
     }
 
 
-def _parse_p180_pro_status(
+def _parse_p180_family_status(
     data: bytes,
+    profile: str,
+    light_bit: int | None = None,
 ) -> dict:
     registers = _get_all_registers(
         data
@@ -455,6 +488,14 @@ def _parse_p180_pro_status(
 
     ac_active = bool(
         state_register & P180_STATE_AC_BIT
+    )
+
+    light_active = (
+        bool(
+            state_register & light_bit
+        )
+        if light_bit is not None
+        else False
     )
 
     if (
@@ -533,7 +574,7 @@ def _parse_p180_pro_status(
             ac_active=ac_active,
             dc_active=dc_active,
             usb_active=False,
-            light_active=False,
+            light_active=light_active,
         )
     )
 
@@ -616,12 +657,14 @@ def _parse_p180_pro_status(
             ac_active
         ),
 
-        "light_active": False,
+        "light_active": (
+            light_active
+        ),
 
         "connected": True,
 
         "device_profile": (
-            "p180_pro"
+            profile
         ),
 
         "battery_voltage_candidate": (
@@ -658,6 +701,54 @@ def _parse_p180_pro_status(
     }
 
 
+def _parse_p180_pro_status(
+    data: bytes,
+) -> dict:
+    return _parse_p180_family_status(
+        data,
+        profile="p180_pro",
+    )
+
+
+def _parse_nomad_1800_status(
+    data: bytes,
+) -> dict:
+    parsed = _parse_p180_family_status(
+        data,
+        profile="nomad_1800",
+        light_bit=NOMAD_STATE_LIGHT_BIT,
+    )
+
+    registers = _get_all_registers(
+        data
+    )
+
+    light_mode_raw = registers.get(
+        NOMAD_LIGHT_MODE_REGISTER,
+        0,
+    )
+
+    light_mode_names = {
+        0: "Off",
+        1: "Steady",
+        2: "SOS",
+        3: "Flash",
+    }
+
+    parsed["light_mode"] = (
+        light_mode_names.get(
+            light_mode_raw,
+            f"Unknown ({light_mode_raw})",
+        )
+    )
+
+    parsed["light_mode_raw"] = (
+        light_mode_raw
+    )
+
+    return parsed
+
+
 def _parse_status(
     data: bytes,
     profile: str,
@@ -677,6 +768,11 @@ def _parse_status(
 
     if profile == "p180_pro":
         return _parse_p180_pro_status(
+            data
+        )
+
+    if profile == "nomad_1800":
+        return _parse_nomad_1800_status(
             data
         )
 
@@ -721,7 +817,7 @@ class AferiyLocalCoordinator(
         self.last_packet_length: int = 0
         self.last_profile_candidate: str = "unknown"
 
-        self._p180_profile_locked = False
+        self._locked_profile: str | None = None
 
     async def _find_device(
         self,
@@ -953,21 +1049,33 @@ class AferiyLocalCoordinator(
                 new_registers
             )
 
-            if _looks_like_p180_pro(
+            if _looks_like_nomad_1800(
+                self.last_device_name,
+                self.last_registers,
+            ):
+                self.last_profile_candidate = (
+                    "nomad_1800"
+                )
+                self._locked_profile = (
+                    "nomad_1800"
+                )
+            elif _looks_like_p180_pro(
                 self.last_registers
             ):
                 self.last_profile_candidate = (
                     "p180_pro"
                 )
-                self._p180_profile_locked = True
+                self._locked_profile = (
+                    "p180_pro"
+                )
             else:
                 self.last_profile_candidate = (
                     "standard"
                 )
 
-            if self._p180_profile_locked:
+            if self._locked_profile:
                 active_profile = (
-                    "p180_pro"
+                    self._locked_profile
                 )
             else:
                 active_profile = (

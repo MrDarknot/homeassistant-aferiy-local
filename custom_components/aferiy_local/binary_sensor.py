@@ -82,6 +82,30 @@ P180_PRO_BINARY_SENSORS = (
 )
 
 
+NOMAD_1800_BINARY_SENSORS = (
+    AferiyBinarySensorDescription(
+        key="ac_output",
+        data_key="ac_active",
+        name="AC output",
+    ),
+    AferiyBinarySensorDescription(
+        key="dc_output",
+        data_key="dc_active",
+        name="DC output",
+    ),
+    AferiyBinarySensorDescription(
+        key="light",
+        data_key="light_active",
+        name="Light",
+    ),
+    AferiyBinarySensorDescription(
+        key="bluetooth_connected",
+        data_key="connected",
+        name="Bluetooth connected",
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -99,6 +123,10 @@ async def async_setup_entry(
     if profile == "p180_pro":
         binary_sensors = (
             P180_PRO_BINARY_SENSORS
+        )
+    elif profile == "nomad_1800":
+        binary_sensors = (
+            NOMAD_1800_BINARY_SENSORS
         )
     else:
         binary_sensors = (
@@ -149,6 +177,8 @@ class AferiyPowerStationBinarySensor(
 
         if profile == "p180_pro":
             model = "P180 Pro"
+        elif profile == "nomad_1800":
+            model = "Nomad 1800"
         else:
             model = "Power Station"
 
